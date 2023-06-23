@@ -21,39 +21,69 @@ POSTS = [
 ]
 
 #  --- Routes ------------------------------------------------------
-@app.route('/api/posts', methods=['GET','POST'])
-def manage_posts():
-    """
-    Handle GET and POST requests to the '/api/posts' route.
+@app.route('/api/posts', methods=['GET'])
+def get_posts():
+    # case when no args passed. return posts as it is.
+    if not request.args:
+        return jsonify(POSTS), 200
 
-    - GET: Returns a JSON list of all posts.
+    sort_criteria = request.args.get('sort')
+    direction_criteria = request.args.get('direction')
+
+    # case when passed arguments are validated
+    if sort_criteria in ["title", "content"] and direction_criteria in ["asc", "desc"]:
+        is_reverse = True if direction_criteria == 'desc' else False
+        sorted_posts = sorted(POSTS, key=lambda post: post[sort_criteria], reverse=is_reverse)
+
+        return jsonify(sorted_posts), 200
+
+    # case for passing wrong arguments
+    error_messages = []
+
+    # check sort_criteria
+    if sort_criteria is None:
+        error_messages.append("You didn't pass the sort argument.")
+    elif sort_criteria not in ["title", "content"]:
+        error_messages.append(
+            "Sort argument value wrong, should be 'title' or 'content'.")
+
+    # check direction_criteria
+    if direction_criteria is None:
+        error_messages.append("You didn't pass the direction argument.")
+    elif direction_criteria not in ["asc", "desc"]:
+        error_messages.append(
+            "Direction argument value wrong, should be 'asc' or 'desc'.")
+
+    return jsonify({"error":f"{' ||| '.join(error_messages)}"}), 400
+
+@app.route('/api/posts', methods=['POST'])
+def add_post():
+    """
+    Handle POST requests to the '/api/posts' route.
     - POST: Adds a new post using JSON data from the request body.
             The request body must contain 'title' and 'content' keys.
             Returns JSON with  added post with a unique 'id', or an error message
             and status code 400 if 'title' or 'content' are missing.
     """
-    if request.method == 'POST':
-        # case when json was not passed/ failed to decode json
-        new_post_data = get_validated_json()
-        if new_post_data is None:
-            return jsonify(ERROR_MSG_DECODE_JSON), 400
+    # case when json was not passed/ failed to decode json
+    new_post_data = get_validated_json()
+    if new_post_data is None:
+        return jsonify(ERROR_MSG_DECODE_JSON), 400
 
-        # Validate if all required keys are present and have a value
-        missing_keys = [key for key in ['title', 'content'] if not new_post_data.get(key)]
-        if missing_keys:
-            return jsonify({'error': f"Missing or empty key(s): {missing_keys}"}), 400
+    # Validate if all required keys are present and have a value
+    missing_keys = [key for key in ['title', 'content'] if not new_post_data.get(key)]
+    if missing_keys:
+        return jsonify({'error': f"Missing or empty key(s): {missing_keys}"}), 400
 
-        # creating new post and adding to db
-        new_post = {
-            'id': get_unique_id_for_post(),
-            'content': new_post_data['content'],
-            'title': new_post_data['title']}
-        POSTS.append(new_post)
+    # creating new post and adding to db
+    new_post = {
+        'id': get_unique_id_for_post(),
+        'content': new_post_data['content'],
+        'title': new_post_data['title']}
+    POSTS.append(new_post)
 
-        return jsonify(new_post), 201
+    return jsonify(new_post), 201
 
-    # GET request
-    return jsonify(POSTS)
 
 
 @app.route('/api/posts/<post_id>', methods=['DELETE'])
@@ -105,7 +135,47 @@ def update_post(post_id: str):
     return jsonify(post_to_update), 200
 
 
+@app.route('/api/posts/search', methods=['GET'])
+def search_posts():
+    title_to_search = request.args.get('title')
+    content_to_search = request.args.get('content')
+
+    title_search_result = search_posts_by_word_in_title(title_to_search)
+    content_to_search = search_posts_by_word_in_content(content_to_search)
+
+    combined_result: list = title_search_result + content_to_search
+
+    # removing duplicates
+    combined_result = [post for index, post in enumerate(combined_result)
+                       if combined_result.index(post) == index]
+
+    return jsonify(combined_result), 200
+
+
 #  --- inner logic ------------------------------------------------------
+def search_posts_by_word_in_title(title_word_to_search: str) -> list[dict]:
+    """search posts where title got title_word_to_search"""
+    result_of_search = []
+    title_word_to_search = title_word_to_search.lower()
+    for post in POSTS:
+        split_lower_words_of_title: list = post['title'].lower().split()
+        if title_word_to_search in split_lower_words_of_title:
+            result_of_search.append(post)
+
+    return result_of_search
+
+def search_posts_by_word_in_content(content_word_to_search: str) -> list[dict]:
+    """search posts where content got content_word_to_search"""
+    result_of_search = []
+    title_word_to_search = content_word_to_search.lower()
+    for post in POSTS:
+        split_lower_words_of_title: list = post['content'].lower().split()
+        if title_word_to_search in split_lower_words_of_title:
+            result_of_search.append(post)
+
+    return result_of_search
+
+
 def get_data_to_update(data_for_update: dict) -> dict:
     """Returns dictionary with elements that needed to be updated in post"""
     data_for_update = {key: val for key, val in data_for_update.items()
