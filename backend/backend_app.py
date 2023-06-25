@@ -3,6 +3,7 @@ from flask_cors import CORS
 import logging
 from werkzeug.exceptions import BadRequest
 import datetime
+import data_handler_json
 
 app = Flask(__name__)
 CORS(app)  # This will enable CORS for all routes
@@ -37,9 +38,11 @@ def get_posts():
         - direction : Direction of the sort. Acceptable values are "asc" (ascending) or "desc" (descending).
 
     """
+    blog_data = data_handler.load_data()
+
     # case when no args passed. return posts as it is.
     if not request.args:
-        return jsonify(POSTS), 200
+        return jsonify(blog_data), 200
 
     sort_criteria = request.args.get('sort')
     direction_criteria = request.args.get('direction')
@@ -50,11 +53,11 @@ def get_posts():
 
         # sorting. different sort for value of key 'date'
         if sort_criteria == "date":
-            sorted_posts = sorted(POSTS,
+            sorted_posts = sorted(blog_data,
                                   key=lambda post: datetime.datetime.strptime(post[sort_criteria], '%Y-%m-%d'),
                                   reverse=is_reverse)
         else:
-            sorted_posts = sorted(POSTS, key=lambda post: post[sort_criteria], reverse=is_reverse)
+            sorted_posts = sorted(blog_data, key=lambda post: post[sort_criteria], reverse=is_reverse)
 
         return jsonify(sorted_posts), 200
 
@@ -101,12 +104,11 @@ def add_post():
 
     # creating new post and adding to db
     new_post = {
-        'id': get_unique_id_for_post(),
         'content': new_post_data['content'],
         'title': new_post_data['title'],
         'author': new_post_data['author'],
         'date': new_post_data['date']}
-    POSTS.append(new_post)
+    new_post = data_handler.add(new_post)
 
     return jsonify(new_post), 201
 
@@ -125,9 +127,8 @@ def delete_post(post_id: str):
         post_id = int(post_id)
 
         # remove post by id (if exist) amd return json of deleted post
-        post_to_delete = get_post_by_id(post_id)
-        if post_to_delete:
-            POSTS.remove(post_to_delete)
+        deleted_post = data_handler.delete_post(post_id)
+        if deleted_post:
             message_for_return = {
                 "message": f"Post with id {post_id} has been deleted successfully"
             }
@@ -157,6 +158,7 @@ def update_post(post_id: str):
     data_to_update = get_data_to_update(data_from_user_to_update)
     for key, val in data_to_update.items():
         post_to_update[key] = val
+    post_to_update = data_handler.update_data(post_to_update)
 
     return jsonify(post_to_update), 200
 
@@ -175,8 +177,6 @@ def search_posts():
         if search_params[search_key]:
             search_result.extend(search_posts_by_word(search_word, search_key))
 
-    # combined_result: list = title_search_result + content_to_search
-
     # removing duplicates
     combined_result = [post for index, post in enumerate(search_result)
                        if search_result.index(post) == index]
@@ -191,6 +191,8 @@ def is_valid_date_format(date_string):
         return True
     except ValueError:
         return False
+
+
 def is_query_args_are_valid(sort_criteria: str, direction_criteria: str) -> bool:
     return sort_criteria in ["title", "content", "author", "date"] \
         and direction_criteria in ["asc", "desc"]
@@ -199,12 +201,12 @@ def is_query_args_are_valid(sort_criteria: str, direction_criteria: str) -> bool
 def search_posts_by_word(word_to_search: str, key_to_search: str):
     """search posts where word_to_search is matched to one of the words in value
     of the key_to_search"""
-
+    blog_data = data_handler.load_data()
     result_of_search = []
-    title_word_to_search = word_to_search.lower()
-    for post in POSTS:
-        split_lower_words_of_title: list = post[key_to_search].lower().split()
-        if title_word_to_search in split_lower_words_of_title:
+    word_to_search = word_to_search.lower()
+    for post in blog_data:
+        splitted_lower_words_of_post: list = post[key_to_search].lower().strip('.').split()
+        if word_to_search in splitted_lower_words_of_post:
             result_of_search.append(post)
 
     return result_of_search
@@ -219,7 +221,8 @@ def get_data_to_update(data_for_update: dict) -> dict:
 
 def get_post_by_id(post_id: int):
     """Returns post with post_id, if not exist - returns None"""
-    return next((post for post in POSTS if post['id'] == post_id), None)
+    blog_data = data_handler.load_data()
+    return next((post for post in blog_data if post['id'] == post_id), None)
 
 def get_unique_id_for_post() -> int:
     # case for no posts
@@ -239,8 +242,10 @@ def get_validated_json() -> dict:
 
     except BadRequest as e:
         return None
+
 # ------------------------------------------------------------------------
 
 
 if __name__ == '__main__':
+    data_handler = data_handler_json.DataHandlerJson()
     app.run(host="0.0.0.0", port=5002, debug=True)

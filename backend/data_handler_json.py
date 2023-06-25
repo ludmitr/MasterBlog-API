@@ -43,6 +43,7 @@ class DataHandlerJson:
         blog_posts.append(post)
 
         self._save_data(blog_posts)
+        return post
 
     def delete_post(self, id_to_delete: int):
         """Delete post by id_to_delete. if delete succeeded
