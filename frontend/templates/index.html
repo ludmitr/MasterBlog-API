@@ -9,7 +9,24 @@
 </head>
 <body>
     <div class="container">
-        <h1>📚 Blog Posts</h1>
+           <div class="input-field inline">
+            <div class="left-content">
+                <h1>📚 Blog Posts</h1>
+            </div>
+            <div class="right-content">
+                <select id="sort-by">
+                    <option value="title">Sort by Title</option>
+                    <option value="content">Sort by Content</option>
+                    <option value="author">Sort by Author</option>
+                    <option value="date">Sort by Date</option>
+                </select>
+                <select id="sort-direction">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                </select>
+                <button onclick="sortPosts()">Sort</button>
+            </div>
+        </div>
         <div class="input-field">
             <input type="text" id="api-base-url" placeholder="Enter API Base URL" value="http://127.0.0.1:5002/api">
             <button onclick="loadPosts()">Load Posts</button>
@@ -21,6 +38,14 @@
             <input type="text" id="post-date" placeholder="Enter Date">
             <button onclick="addPost()">Add Post</button>
         </div>
+        <div class="input-field">
+            <input type="text" id="search-title" placeholder="Search by Title">
+            <input type="text" id="search-content" placeholder="Search by Content">
+            <input type="text" id="search-author" placeholder="Search by Author">
+            <input type="text" id="search-date" placeholder="Search by Date">
+            <button onclick="searchPosts()">Search</button>
+        </div>
+
         <div id="post-container">
             <!-- Blog posts will be inserted here by JavaScript -->
         </div>

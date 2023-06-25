@@ -15,6 +15,65 @@ function createPostElement(post) {
     return postDiv;
 }
 
+// Function to send a search request to the API and display the matching posts
+function searchPosts() {
+    // Retrieve the search values from the input fields
+    var baseUrl = document.getElementById('api-base-url').value;
+    var searchTitle = document.getElementById('search-title').value;
+    var searchContent = document.getElementById('search-content').value;
+    var searchAuthor = document.getElementById('search-author').value;
+    var searchDate = document.getElementById('search-date').value;
+
+    // Construct the search query string with the provided data
+    var searchQuery = `?title=${searchTitle}&content=${searchContent}&author=${searchAuthor}&date=${searchDate}`;
+
+    // Use the Fetch API to send a GET request to the /search endpoint with the search query parameters
+    fetch(baseUrl + '/posts/search' + searchQuery)
+        .then(response => response.json())  // Parse the JSON data from the response
+        .then(data => {  // Once the data is ready, we can use it
+            // Clear out the post container first
+            const postContainer = document.getElementById('post-container');
+            postContainer.innerHTML = '';
+
+            // For each post in the search results, create a new post element and add it to the page
+            data.forEach(post => {
+                const postDiv = createPostElement(post);
+                postContainer.appendChild(postDiv);
+            });
+        })
+        .catch(error => console.error('Error:', error));  // If an error occurs, log it to the console
+}
+
+// Function to send a GET request to the API with sorting parameters
+function sortPosts() {
+    // Retrieve the sort and direction values from the select elements
+    var sortValue = document.getElementById('sort-by').value;
+    var directionValue = document.getElementById('sort-direction').value;
+
+    // Retrieve the base URL from the input field
+    var baseUrl = document.getElementById('api-base-url').value;
+
+    // Construct the URL with the sorting parameters
+    var url = baseUrl + '/posts?sort=' + sortValue + '&direction=' + directionValue;
+
+    // Use the Fetch API to send a GET request to the constructed URL
+    fetch(url)
+        .then(response => response.json())  // Parse the JSON data from the response
+        .then(data => {  // Once the data is ready, we can use it
+            // Clear out the post container first
+            const postContainer = document.getElementById('post-container');
+            postContainer.innerHTML = '';
+
+            // For each post in the response, create a new post element and add it to the page
+            data.forEach(post => {
+                const postDiv = createPostElement(post);
+                postContainer.appendChild(postDiv);
+            });
+        })
+        .catch(error => console.error('Error:', error));  // If an error occurs, log it to the console
+}
+
+
 // Function to fetch all the posts from the API and display them on the page
 function loadPosts() {
     // Retrieve the base URL from the input field and save it to local storage

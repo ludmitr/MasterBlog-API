@@ -89,3 +89,53 @@ body {
 .post button:hover {
     background-color: #cc0000;
 }
+
+
+
+
+
+
+
+
+.input-field {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.input-field select,
+.input-field button {
+  height: 40px;
+  padding: 10px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.5s ease;
+}
+
+.input-field select {
+  margin-right: 10px;
+}
+
+.input-field button {
+  background-color: #4466ee;
+  color: #fff;
+  cursor: pointer;
+}
+
+.input-field button:hover {
+  background-color: #3355dd;
+}
+
+h1{
+    display:inline;
+}
+
+.input-field.inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
