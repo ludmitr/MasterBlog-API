@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import logging
 from werkzeug.exceptions import BadRequest
 import datetime
 import data_handler_json
@@ -11,19 +10,6 @@ CORS(app)  # This will enable CORS for all routes
 ERROR_MSG_ID_NOT_FOUND = {"error": "id not found"}
 ERROR_MSG_DECODE_JSON = {"error": "Failed to decode JSON object"}
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(levelname)s: %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    filename='combined_list.log')
-
-
-POSTS = [
-    {"id": 1, "title": "First post", "content": "This is the first post.",
-     "author": "Your Name", "date": "2023-06-07"},
-    {"id": 2, "title": "Second post", "content": "This is the second post.",
-     "author": "Your Name", "date": "2023-06-07"},
-]
 
 #  --- Routes ------------------------------------------------------
 @app.route('/api/posts', methods=['GET'])
@@ -113,7 +99,6 @@ def add_post():
     return jsonify(new_post), 201
 
 
-
 @app.route('/api/posts/<post_id>', methods=['DELETE'])
 def delete_post(post_id: str):
     """
@@ -140,6 +125,19 @@ def delete_post(post_id: str):
 
 @app.route("/api/posts/<post_id>", methods=['PUT'])
 def update_post(post_id: str):
+    """
+       Update a blog post with the given post_id.
+
+       Args:
+           post_id (str): The ID of the post to update.
+
+       Returns:
+           Flask Response: The updated post as a JSON response.
+
+       Raises:
+           404: If the post_id is not numeric or no post with that ID is found.
+           400: If the JSON data from the client fails to decode.
+       """
     # case when id is not numeric
     if not post_id.isnumeric():
         return jsonify(ERROR_MSG_ID_NOT_FOUND), 404
@@ -165,6 +163,12 @@ def update_post(post_id: str):
 
 @app.route('/api/posts/search', methods=['GET'])
 def search_posts():
+    """
+    Search for blog posts based on provided search parameters.
+
+    Returns:
+        Flask Response: A JSON response containing the search results.
+    """
     search_params = {
         'title': request.args.get('title'),
         'content': request.args.get('content'),
@@ -185,7 +189,7 @@ def search_posts():
 
 
 #  --- inner logic ------------------------------------------------------
-def is_valid_date_format(date_string):
+def is_valid_date_format(date_string) -> bool:
     try:
         datetime.datetime.strptime(date_string, '%Y-%m-%d')
         return True
@@ -224,23 +228,15 @@ def get_post_by_id(post_id: int):
     blog_data = data_handler.load_data()
     return next((post for post in blog_data if post['id'] == post_id), None)
 
-def get_unique_id_for_post() -> int:
-    # case for no posts
-    if not POSTS:
-        return 1
 
-    post_with_max_id = max(POSTS, key=lambda x: x['id'])
-
-    return post_with_max_id['id'] + 1
-
-def get_validated_json() -> dict:
+def get_validated_json():
     """if decoding went right, will return dict, otherwise None """
     try:
         json_data = request.get_json()
 
         return json_data
 
-    except BadRequest as e:
+    except BadRequest:
         return None
 
 # ------------------------------------------------------------------------
