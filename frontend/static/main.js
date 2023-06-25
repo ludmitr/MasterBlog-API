@@ -8,6 +8,12 @@ window.onload = function() {
         loadPosts();
     }
 }
+function createPostElement(post) {
+    const postDiv = document.createElement('div');
+    postDiv.className = 'post';
+    postDiv.innerHTML = `<h2>${post.title}</h2><p>${post.content}</p><p><strong>Author:</strong> ${post.author}</p><p><strong>Date:</strong> ${post.date}</p><button onclick="deletePost(${post.id})">Delete</button>`;
+    return postDiv;
+}
 
 // Function to fetch all the posts from the API and display them on the page
 function loadPosts() {
@@ -25,10 +31,7 @@ function loadPosts() {
 
             // For each post in the response, create a new post element and add it to the page
             data.forEach(post => {
-                const postDiv = document.createElement('div');
-                postDiv.className = 'post';
-                postDiv.innerHTML = `<h2>${post.title}</h2><p>${post.content}</p>
-                <button onclick="deletePost(${post.id})">Delete</button>`;
+                const postDiv = createPostElement(post);
                 postContainer.appendChild(postDiv);
             });
         })
@@ -41,12 +44,22 @@ function addPost() {
     var baseUrl = document.getElementById('api-base-url').value;
     var postTitle = document.getElementById('post-title').value;
     var postContent = document.getElementById('post-content').value;
+    var postAuthor = document.getElementById('post-author').value;
+    var postDate = document.getElementById('post-date').value;
+
+    // Create a new post object with the relevant data
+    var newPost = {
+        title: postTitle,
+        content: postContent,
+        author: postAuthor,
+        date: postDate
+    };
 
     // Use the Fetch API to send a POST request to the /posts endpoint
     fetch(baseUrl + '/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: postTitle, content: postContent })
+        body: JSON.stringify(newPost)
     })
     .then(response => response.json())  // Parse the JSON data from the response
     .then(post => {
