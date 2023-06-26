@@ -14,57 +14,29 @@ ERROR_MSG_DECODE_JSON = {"error": "Failed to decode JSON object"}
 #  --- Routes ------------------------------------------------------
 @app.route('/api/posts', methods=['GET'])
 def get_posts():
-    """Return different result based on
+    """
+    Returns a list of blog posts. If sort and direction query parameters are
+    provided, the posts are returned in the specified order.
 
-    - No query args passed - will return json with posts as it is.
-    - With passed args - will return sorted list of posts.
-
-        Query Parameters (both must be present):
-        - sort : Attribute of the post to sort by. Acceptable values are "title" or "content" or... .
-        - direction : Direction of the sort. Acceptable values are "asc" (ascending) or "desc" (descending).
-
+    Query Parameters (both must be present):
+    - sort: Attribute of the post to sort by. Acceptable values are "title" or "content" or "date".
+    - direction: Direction of the sort. Acceptable values are "asc" (ascending) or "desc" (descending).
     """
     blog_data = data_handler.load_data()
-
-    # case when no args passed. return posts as it is.
-    if not request.args:
-        return jsonify(blog_data), 200
 
     sort_criteria = request.args.get('sort')
     direction_criteria = request.args.get('direction')
 
-    # case when passed arguments are validated
-    if is_query_args_are_valid(sort_criteria, direction_criteria):
-        is_reverse = True if direction_criteria == 'desc' else False
+    if not sort_criteria and not direction_criteria:
+        return jsonify(blog_data), 200
 
-        # sorting. different sort for value of key 'date'
-        if sort_criteria == "date":
-            sorted_posts = sorted(blog_data,
-                                  key=lambda post: datetime.datetime.strptime(post[sort_criteria], '%Y-%m-%d'),
-                                  reverse=is_reverse)
-        else:
-            sorted_posts = sorted(blog_data, key=lambda post: post[sort_criteria], reverse=is_reverse)
-
+    try:
+        validate_sort_criteria(sort_criteria)
+        validate_direction_criteria(direction_criteria)
+        sorted_posts = sort_posts(blog_data, sort_criteria, direction_criteria)
         return jsonify(sorted_posts), 200
-
-    # ---- case for passing wrong query arguments-----
-    error_messages = []
-
-    # check sort_criteria
-    if sort_criteria is None:
-        error_messages.append("You didn't pass the sort argument.")
-    elif sort_criteria not in ["title", "content"]:
-        error_messages.append(
-            "Sort argument value wrong, should be 'title' or 'content'.")
-
-    # check direction_criteria
-    if direction_criteria is None:
-        error_messages.append("You didn't pass the direction argument.")
-    elif direction_criteria not in ["asc", "desc"]:
-        error_messages.append(
-            "Direction argument value wrong, should be 'asc' or 'desc'.")
-
-    return jsonify({"error": f"{' ||| '.join(error_messages)}"}), 400
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
 
 @app.route('/api/posts', methods=['POST'])
@@ -189,6 +161,30 @@ def search_posts():
 
 
 #  --- inner logic ------------------------------------------------------
+def validate_sort_criteria(sort_criteria):
+    valid_criteria = ["title", "content", "date"]
+    if sort_criteria not in valid_criteria:
+        raise ValueError(f"Sort argument value wrong, should be one of {valid_criteria}.")
+
+
+def validate_direction_criteria(direction_criteria):
+    if direction_criteria not in ["asc", "desc"]:
+        raise ValueError("Direction argument value wrong, should be 'asc' or 'desc'.")
+
+
+def sort_posts(blog_data, sort_criteria, direction_criteria):
+    is_reverse = True if direction_criteria == 'desc' else False
+
+    if sort_criteria == "date":
+        sorted_posts = sorted(blog_data,
+                              key=lambda post: datetime.datetime.strptime(post[sort_criteria], '%Y-%m-%d'),
+                              reverse=is_reverse)
+    else:
+        sorted_posts = sorted(blog_data, key=lambda post: post[sort_criteria], reverse=is_reverse)
+
+    return sorted_posts
+
+
 def is_valid_date_format(date_string) -> bool:
     try:
         datetime.datetime.strptime(date_string, '%Y-%m-%d')
